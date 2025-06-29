@@ -3,12 +3,12 @@
 #include <ESP32Servo.h>
 
 // WiFi Credentials
-const char* ssid = "HAM";     // Your WiFi Name
-const char* password = "VU2HCF@55"; // Your WiFi Password
+const char* ssid = "ssid";     // Your WiFi Name
+const char* password = "password"; // Your WiFi Password
 
 // Telegram Bot Credentials
-String botToken = "7961915404:AAEWpFMB2YEMmTqW52Tf6LMSYrF4AWMjlHw"; // Your Telegram Bot API Token
-String chatID = "1536917234"; // Your Telegram Chat ID
+String botToken = "bot_token"; // Your Telegram Bot API Token
+String chatID = "chat_id"; // Your Telegram Chat ID
 
 // Sensor & Servo Pins
 #define IR_SENSOR 4    // IR Sensor Pin (Detects Full Dustbin)
