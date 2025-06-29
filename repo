@@ -1,0 +1,101 @@
+#include <WiFi.h>
+#include <HTTPClient.h>
+#include <ESP32Servo.h>
+
+// WiFi Credentials
+const char* ssid = "HAM";     // Your WiFi Name
+const char* password = "VU2HCF@55"; // Your WiFi Password
+
+// Telegram Bot Credentials
+String botToken = "7961915404:AAEWpFMB2YEMmTqW52Tf6LMSYrF4AWMjlHw"; // Your Telegram Bot API Token
+String chatID = "1536917234"; // Your Telegram Chat ID
+
+// Sensor & Servo Pins
+#define IR_SENSOR 4    // IR Sensor Pin (Detects Full Dustbin)
+#define TRIG_PIN 22    // Ultrasonic Trigger Pin
+#define ECHO_PIN 23    // Ultrasonic Echo Pin
+#define SERVO_PIN 14   // Servo Motor Pin
+
+Servo dustbinLid;
+bool binFull = false; // Flag to track if the bin is full
+
+void sendTelegramMessage(String message) {
+    HTTPClient http;
+    String url = "https://api.telegram.org/bot" + botToken + "/sendMessage?chat_id=" + chatID + "&text=" + message;
+    
+    http.begin(url);
+    int httpResponseCode = http.GET();
+    
+    if (httpResponseCode > 0) {
+        Serial.println("📩 Message Sent Successfully!");
+    } else {
+        Serial.println(" Error Sending Message!");
+    }
+    
+    http.end();
+}
+
+void setup() {
+    Serial.begin(115200);
+    
+    // Connect to WiFi
+    WiFi.begin(ssid, password);
+    Serial.print("🔗 Connecting to WiFi...");
+    while (WiFi.status() != WL_CONNECTED) {
+        delay(500);
+        Serial.print(".");
+    }
+    Serial.println("\n Connected to WiFi!");
+
+    // Sensor & Servo Setup
+    pinMode(IR_SENSOR, INPUT);
+    pinMode(TRIG_PIN, OUTPUT);
+    pinMode(ECHO_PIN, INPUT);
+    
+    dustbinLid.attach(SERVO_PIN);
+    dustbinLid.write(0);  // Ensure lid starts closed
+
+    Serial.println(" Smart Dustbin System Initialized!");
+}
+
+void loop() {
+    int sensorState = digitalRead(IR_SENSOR);
+
+    if (sensorState == LOW) { // If bin is full
+        if (!binFull) { // Send alert only once
+            Serial.println("🚨 Dustbin is FULL! Sending alert...");
+            sendTelegramMessage("🚨 Alert! The dustbin is FULL. Please empty it.");
+            binFull = true;
+        }
+        return; // Exit loop without checking the ultrasonic sensor
+    } else {
+        binFull = false; // Reset flag if the bin is emptied
+    }
+
+    // Ultrasonic Sensor: Detect Object & Open Lid
+    long duration;
+    int distance;
+    
+    digitalWrite(TRIG_PIN, LOW);
+    delayMicroseconds(2);
+    digitalWrite(TRIG_PIN, HIGH);
+    delayMicroseconds(10);
+    digitalWrite(TRIG_PIN, LOW);
+
+    duration = pulseIn(ECHO_PIN, HIGH, 30000);
+    distance = duration * 0.034 / 2; 
+
+    Serial.print("📏 Distance: ");
+    Serial.print(distance);
+    Serial.println(" cm");
+
+    if (distance > 0 && distance <= 20) {  // Object detected
+        Serial.println(" Object detected! Opening Lid...");
+        dustbinLid.write(70);
+        delay(5000);
+        Serial.println(" Closing Lid...");
+        dustbinLid.write(0);
+    }
+
+    delay(1000); // Check every second
+}
